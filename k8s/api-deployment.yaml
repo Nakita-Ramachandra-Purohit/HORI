@@ -1,0 +1,44 @@
+# k8s/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: api, namespace: hori}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: api}}
+  template:
+    metadata: {labels: {app: api}}
+    spec:
+      containers:
+      - name: api
+        image: yourrepo/hori-api:latest
+        env:
+        - name: DB_DSN
+          value: "dbname=postgres user=postgres password=$(POSTGRES_PASSWORD) host=postgres.hori.svc.cluster.local port=5432"
+        - name: HORI_URL
+          value: "http://hori:9000/score"
+        - name: ROUTING_URL
+          value: "http://routing:9001/route"
+        - name: BASIC_USER
+          valueFrom: {secretKeyRef: {name: hori-secrets, key: BASIC_USER}}
+        - name: BASIC_PASS
+          valueFrom: {secretKeyRef: {name: hori-secrets, key: BASIC_PASS}}
+        ports: [{containerPort: 8000}]
+        readinessProbe: {httpGet: {path: /v1/healthz, port: 8080}, initialDelaySeconds: 5, periodSeconds: 10}
+        livenessProbe:  {httpGet: {path: /v1/healthz, port: 8080}, initialDelaySeconds: 15, periodSeconds: 20}
+      - name: sidecar
+        image: nginx:1.27-alpine
+        volumeMounts: [{name: nginx-conf, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf}]
+        ports: [{containerPort: 8080}]
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: api-nginx
+---
+apiVersion: v1
+kind: Service
+metadata: {name: api, namespace: hori}
+spec:
+  selector: {app: api}
+  ports:
+    - {name: http, port: 8080, targetPort: 8080}
+  type: ClusterIP

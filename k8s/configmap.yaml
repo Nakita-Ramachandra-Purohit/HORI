@@ -1,0 +1,15 @@
+# k8s/configmap.yaml (snippet)
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: api-nginx, namespace: hori}
+data:
+  nginx.conf: |
+    events {}
+    http {
+      log_format main '$remote_addr - - [$time_local] "$request" $status $body_bytes_sent $request_time';
+      access_log /var/log/nginx/access.log main;
+      server {
+        listen 8080;
+        location / { proxy_pass http://127.0.0.1:8000; }
+      }
+    }
