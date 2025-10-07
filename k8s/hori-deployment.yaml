@@ -1,0 +1,22 @@
+# k8s/hori-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: hori, namespace: hori}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: hori}}
+  template:
+    metadata: {labels: {app: hori}}
+    spec:
+      containers:
+      - name: hori
+        image: yourrepo/hori-calc:latest
+        ports: [{containerPort: 9000}]
+---
+apiVersion: v1
+kind: Service
+metadata: {name: hori, namespace: hori}
+spec:
+  selector: {app: hori}
+  ports: [{port: 9000, targetPort: 9000}]
+  type: ClusterIP
